@@ -1,7 +1,6 @@
 use super::super::{
     Arc, BaseEventMessage, Client, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
-    NotificationPayload, Result, RwLock, RwLockReadGuard, RwLockWriteGuard, UserConfig,
-    WelcomeMessage, WelcomePayload,
+    NotificationPayload, Result, RwLock, UserConfig, WelcomeMessage, WelcomePayload,
 };
 use super::subscribe_to_chat;
 
@@ -38,19 +37,16 @@ pub async fn handle_event(
             let msg: WelcomeMessage = WelcomeMessage::from_base(peek.metadata, payload);
 
             if let Some(session) = &msg.payload.session {
-                let mut lock: RwLockWriteGuard<'_, Option<String>> = session_id.write().await;
-                *lock = Some(session.id.clone());
-                drop(lock);
-
+                *session_id.write().await = Some(session.id.clone());
                 tracing::debug!("Got session_welcome.");
             }
 
-            let lock: RwLockReadGuard<'_, Option<String>> = session_id.read().await;
-            let session_id: String = lock
+            let session_id: String = session_id
+                .read()
+                .await
                 .clone()
                 .ok_or_else(|| Error::NoneError("Tried to read None session ID".into()))?;
 
-            drop(lock);
             subscribe_to_chat(http_client, &session_id, user_config).await?;
             Ok(EventMessage::Welcome(msg))
         }

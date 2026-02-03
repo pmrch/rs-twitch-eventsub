@@ -6,6 +6,7 @@ pub mod utils;
 
 use controller::TwitchController;
 use prelude::*;
+use rustls::crypto;
 
 /// This function starts the main loop for `TwitchController`
 ///
@@ -13,10 +14,19 @@ use prelude::*;
 ///
 /// - Returns `tokio_tungstenite::tungstenite::Error` if any sort of WebSocket
 ///   call fails
+///
+/// # Panics
+///
+/// - Panics if TLS initialization fails
 pub async fn run_twitch_controller<F, Fut>(message_handler: F) -> Result<()>
 where
     F: Fn(ChatMessage, String) -> Fut + Send + Sync + 'static,
     Fut: std::future::Future<Output = ()> + Send + 'static, {
+    dotenv::dotenv()?;
+    crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to initialize TLS");
+
     let url: Url = Url::parse("wss://eventsub.wss.twitch.tv/ws")?;
     let (ws_stream, _) = connect_async(url.to_string()).await?;
 

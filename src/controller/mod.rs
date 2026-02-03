@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 pub use controller_core::TwitchController;
 pub use helpers::EventMessage;
-use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::RwLock;
 
 use crate::prelude::keepalive::{KeepaliveMessage, KeepalivePayload};
 use crate::prelude::notification::{NotificationMessage, NotificationPayload};

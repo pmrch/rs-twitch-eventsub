@@ -21,6 +21,9 @@ pub enum Error {
     #[error("WebSocket error: {0}")]
     WebSocketError(#[from] tokio_tungstenite::tungstenite::Error),
 
+    #[error("Dotenv init error: {0}")]
+    DotenvError(#[from] dotenv::Error),
+
     #[error("None type extraction error: {0}")]
     NoneError(String),
 
