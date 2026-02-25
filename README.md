@@ -1,7 +1,7 @@
 # rs-twitch-eventsub
 
 A lightweight async library for handling Twitch EventSub WebSocket events — only covering the specific event types I currently need.  
-It’s built on top of **tokio**, **reqwest**, and **tokio-tungstenite**, with a focus on being simple, transparent, and reliable.
+It's built on top of **tokio**, **reqwest**, and **tokio-tungstenite**, with a focus on being simple, transparent, and reliable.
 
 ---
 
@@ -12,10 +12,11 @@ carefully chosen subset of events:
 
 - ✅ `session_welcome`
 - ✅ `session_keepalive`
+- ✅ `session_reconnect`
 - ✅ `notification` (with `channel.chat.message`)
 - ⚠️ Other events are recognized but ignored with a warning.
 
-This library is **not** a full Twitch SDK — it’s meant for small integrations, personal bots, and experiments where you only need core 
+This library is **not** a full Twitch SDK — it's meant for small integrations, personal bots, and experiments where you only need core 
 EventSub behavior and want full control of the flow. However in the future I might extend.
 
 ---
@@ -23,8 +24,9 @@ EventSub behavior and want full control of the flow. However in the future I mig
 ## 🔧 Example
 
 ```rust
-use twitch_eventsub::run_twitch_controller;
-use twitch_eventsub::prelude::*;
+use twitch_eventsub::create_twitch_controller;
+use twitch_eventsub::prelude::{EventType, TwitchController};
+use twitch_eventsub::session::NotificationEvent;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,10 +40,18 @@ async fn main() -> anyhow::Result<()> {
     // project root, and also log to console
     // setup_logger()?;
 
-    run_twitch_controller(|msg, chatter| async move {
-        println!("{chatter}: {}", msg.text);
-    })
-    .await
+    let mut twitch_controller: TwitchController = create_twitch_controller().await?;
+
+    twitch_controller
+        .register_callback(EventType::ChatMessage, |event| async move {
+            if let NotificationEvent::ChannelChatMessage(ccm) = event {
+                println!("{}: {}", ccm.chatter_user_name, ccm.message.text);
+            }
+        })
+        .await;
+
+    twitch_controller.start().await?;
+    Ok(())
 }
 ```
 
@@ -53,6 +63,7 @@ async fn main() -> anyhow::Result<()> {
 |-------------|--------------|--------|
 | `session_welcome` | Saves session ID and subscribes to chat | ✅ |
 | `session_keepalive` | Keeps the connection alive | ✅ |
+| `session_reconnect` | Transparently reconnects to the new URL provided by Twitch | ✅ |
 | `notification` | Handles `channel.chat.message` | ✅ |
 | *other events* | Logged but ignored | ⚠️ ignored |
 
@@ -111,15 +122,15 @@ use twitch_eventsub::prelude::setup_logger;
 setup_logger()?;
 ```
 
-If you don’t, it’ll stay silent.
+If you don't, it'll stay silent.
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are **welcome**, but **I’ll only merge them if they align with the crate’s current goals and style.**  
-This isn’t a general-purpose Twitch library — it’s a focused one.  
-That said, if you’ve got a good addition or cleanup that fits well, I’ll happily review it.
+Pull requests are **welcome**, but **I'll only merge them if they align with the crate's current goals and style.**  
+This isn't a general-purpose Twitch library — it's a focused one.  
+That said, if you've got a good addition or cleanup that fits well, I'll happily review it.
 Moreover you are free to fork this repository and maintain your own version.
 
 ---

@@ -27,4 +27,4 @@ pub mod notification_imports {
 
 pub use base::{BaseEventMessage, BaseMetadata, MessageId};
 pub use notification_events::{ChannelChatMessage, ChatMessage, NotificationEvent};
-pub use reconnect::ReconnectMessage;
+pub use reconnect::{ReconnectMessage, ReconnectPayload};

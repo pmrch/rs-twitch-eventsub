@@ -16,8 +16,8 @@ pub use url::Url;
 pub use crate::controller::{EventType, TwitchController};
 pub use crate::session::{
     BaseEventMessage, BaseMetadata, ChannelChatMessage, ChatMessage, NotificationEvent,
-    ReconnectMessage, keepalive_imports as keepalive, notification_imports as notification,
-    welcome_imports as welcome,
+    ReconnectMessage, ReconnectPayload, keepalive_imports as keepalive,
+    notification_imports as notification, welcome_imports as welcome,
 };
 pub use crate::utils::logging::setup_logger;
 pub use crate::utils::user_config::UserConfig;

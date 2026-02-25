@@ -1,4 +1,4 @@
-use super::{DateTime, Deserialize, MessageId, Utc};
+use super::{BaseMetadata, DateTime, Deserialize, MessageId, Utc};
 
 /// An object that identifies the message.
 #[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
@@ -46,4 +46,21 @@ pub struct ReconnectPayload {
 pub struct ReconnectMessage {
     pub metadata: ReconnectMetadata,
     pub payload: ReconnectPayload,
+}
+
+impl ReconnectMessage {
+    #[must_use]
+    pub fn from_base(metadata: BaseMetadata, payload: ReconnectPayload) -> Self {
+        Self { metadata: metadata.into(), payload }
+    }
+}
+
+impl From<BaseMetadata> for ReconnectMetadata {
+    fn from(metadata: BaseMetadata) -> Self {
+        Self {
+            message_id: metadata.message_id,
+            message_type: metadata.message_type,
+            message_timestamp: metadata.message_timestamp,
+        }
+    }
 }

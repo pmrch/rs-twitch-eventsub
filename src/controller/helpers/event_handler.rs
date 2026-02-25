@@ -1,7 +1,7 @@
 use super::super::{
     Arc, BaseEventMessage, Client, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
-    NotificationPayload, ReconnectMessage, Result, RwLock, UserConfig, WelcomeMessage,
-    WelcomePayload,
+    NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RwLock, UserConfig,
+    WelcomeMessage, WelcomePayload,
 };
 use super::subscribe_to_chat;
 
@@ -82,6 +82,17 @@ pub async fn handle_event(
             }
             Err(e) => {
                 tracing::error!("Failed to parse keepalive: {e}");
+                Err(Error::SerdeError(e))
+            }
+        },
+        "session_reconnect" => match serde_json::from_value::<ReconnectPayload>(peek.payload) {
+            Ok(payload) => {
+                let msg: ReconnectMessage = ReconnectMessage::from_base(peek.metadata, payload);
+                tracing::info!("Got session_reconnect");
+                Ok(EventMessage::Reconnect(msg))
+            }
+            Err(e) => {
+                tracing::error!("Failed to parse reconnect: {e}");
                 Err(Error::SerdeError(e))
             }
         },
