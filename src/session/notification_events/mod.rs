@@ -1,3 +1,4 @@
+mod ccm_impl;
 mod channel_chat_message;
 
 use channel_chat_message::ChannelChatMessage as CCM;
@@ -10,4 +11,4 @@ pub enum NotificationEvent {
     Other(serde_json::Value),
 }
 
-pub use channel_chat_message::{ChannelChatMessage, ChatMessage};
+pub use channel_chat_message::{ChannelChatMessage, ChatMessage, MessageType};
