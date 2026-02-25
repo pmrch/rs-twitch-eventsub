@@ -3,6 +3,7 @@ mod helpers;
 mod keepalive;
 mod notification;
 mod notification_events;
+mod reconnect;
 mod welcome;
 
 use chrono::{DateTime, Utc};
@@ -26,3 +27,4 @@ pub mod notification_imports {
 
 pub use base::{BaseEventMessage, BaseMetadata, MessageId};
 pub use notification_events::{ChannelChatMessage, ChatMessage, NotificationEvent};
+pub use reconnect::ReconnectMessage;

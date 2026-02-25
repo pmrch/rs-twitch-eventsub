@@ -1,10 +1,13 @@
 mod controller_core;
 mod helpers;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use controller_core::TwitchController;
-pub use helpers::EventMessage;
+use futures::FutureExt;
+use futures::future::BoxFuture;
+pub use helpers::{EventMessage, EventType};
 use tokio::sync::RwLock;
 
 use crate::prelude::keepalive::{KeepaliveMessage, KeepalivePayload};

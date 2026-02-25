@@ -1,9 +1,9 @@
 use super::{BaseMetadata, DateTime, Deserialize, MessageId, Utc};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct KeepaliveSession {}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct KeepaliveMetadata {
     #[serde(deserialize_with = "super::deserialize_message_id")]
     pub message_id: MessageId,
@@ -12,12 +12,12 @@ pub struct KeepaliveMetadata {
     pub message_timestamp: DateTime<Utc>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct KeepalivePayload {
     pub session: Option<KeepaliveSession>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct KeepaliveMessage {
     pub metadata: KeepaliveMetadata,
     pub payload: KeepalivePayload,

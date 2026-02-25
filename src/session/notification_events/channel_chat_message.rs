@@ -1,6 +1,6 @@
 use super::{Deserialize, MessageId};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum MessageType {
     Text,
@@ -11,7 +11,7 @@ pub enum MessageType {
     PowerUpsGigantifiedEmote,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Badge {
     /// An ID that identifies this set of chat badges. For example, Bits or
     /// Subscriber.
@@ -28,7 +28,7 @@ pub struct Badge {
     pub info: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Cheermote {
     /// The full Cheermote string is the concatenation of {prefix} + {number of
     /// Bits}. For example, a full Cheermote string is Cheer100.
@@ -41,7 +41,7 @@ pub struct Cheermote {
     pub tier: u32,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Emote {
     /// An ID that uniquely identifies this emote.
     pub id: String,
@@ -61,7 +61,7 @@ pub struct Emote {
     pub format: Vec<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Mention {
     /// The user ID of the mentioned user.
     #[serde(rename = "user_id")]
@@ -76,7 +76,7 @@ pub struct Mention {
     pub login: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Fragment {
     #[serde(rename = "type")]
     /// Possible values: text, cheermote, emote, mention
@@ -95,7 +95,7 @@ pub struct Fragment {
     pub mention: Option<Mention>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct ChatMessage {
     /// The chat message in plain text.
     pub text: String,
@@ -104,7 +104,7 @@ pub struct ChatMessage {
     pub fragments: Vec<Fragment>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Reply {
     /// An ID that uniquely identifies the parent message that this message
     /// is replying to.
@@ -135,7 +135,7 @@ pub struct Reply {
     pub thread_user_login: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct ChannelChatMessage {
     /// The broadcaster user ID.
     pub broadcaster_user_id: String,

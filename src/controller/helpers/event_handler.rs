@@ -1,15 +1,33 @@
 use super::super::{
     Arc, BaseEventMessage, Client, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
-    NotificationPayload, Result, RwLock, UserConfig, WelcomeMessage, WelcomePayload,
+    NotificationPayload, ReconnectMessage, Result, RwLock, UserConfig, WelcomeMessage,
+    WelcomePayload,
 };
 use super::subscribe_to_chat;
 
-#[allow(unused)]
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum EventType {
+    ChatMessage,
+    Subscription,
+    Bits,
+}
+
+impl std::fmt::Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bits => write!(f, "bits"),
+            Self::ChatMessage => write!(f, "chat_message"),
+            Self::Subscription => write!(f, "subscription"),
+        }
+    }
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub enum EventMessage {
     Welcome(WelcomeMessage),
     Keepalive(KeepaliveMessage),
     Notification(NotificationMessage),
+    Reconnect(ReconnectMessage),
     None,
 }
 
@@ -27,6 +45,7 @@ pub async fn handle_event(
     session_id: Arc<RwLock<Option<String>>>,
     http_client: Arc<Client>,
     user_config: &UserConfig,
+    is_reconnect: bool,
 ) -> Result<EventMessage> {
     tracing::debug!("Handling event: {raw}");
     let peek: BaseEventMessage<serde_json::Value> = serde_json::from_str(raw)?;
@@ -41,13 +60,18 @@ pub async fn handle_event(
                 tracing::debug!("Got session_welcome.");
             }
 
-            let session_id: String = session_id
-                .read()
-                .await
-                .clone()
-                .ok_or_else(|| Error::NoneError("Tried to read None session ID".into()))?;
+            if is_reconnect {
+                tracing::info!("Reconnect welcome received, skipping subscription");
+            } else {
+                let session_id: String = session_id
+                    .read()
+                    .await
+                    .clone()
+                    .ok_or_else(|| Error::NoneError("Tried to read None session ID".into()))?;
 
-            subscribe_to_chat(http_client, &session_id, user_config).await?;
+                subscribe_to_chat(http_client, &session_id, user_config).await?;
+            }
+
             Ok(EventMessage::Welcome(msg))
         }
         "session_keepalive" => match serde_json::from_value::<KeepalivePayload>(peek.payload) {

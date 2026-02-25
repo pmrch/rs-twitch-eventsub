@@ -3,7 +3,7 @@ use super::{
     Uuid,
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct NotificationMetadata {
     #[serde(deserialize_with = "super::deserialize_message_id")]
     pub message_id: MessageId,
@@ -14,13 +14,13 @@ pub struct NotificationMetadata {
     pub subscription_version: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Transport {
     pub method: String,
     pub session_id: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct Subscription {
     pub id: Uuid,
     pub status: String,
@@ -33,13 +33,13 @@ pub struct Subscription {
     #[serde(deserialize_with = "super::from_rfc3339")]
     pub created_at: DateTime<Utc>,
 }
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct NotificationPayload {
     pub subscription: Subscription,
     pub event: NotificationEvent,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct NotificationMessage {
     pub metadata: NotificationMetadata,
     pub payload: NotificationPayload,

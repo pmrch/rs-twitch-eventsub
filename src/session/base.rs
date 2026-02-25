@@ -1,16 +1,17 @@
 use super::{DateTime, Deserialize, Utc, Uuid};
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub enum MessageId {
     StringId(String),
     UuidId(Uuid),
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct BaseMetadata {
     #[serde(deserialize_with = "super::deserialize_message_id")]
     pub message_id: MessageId,
     pub message_type: String,
+    #[serde(deserialize_with = "super::from_rfc3339")]
     pub message_timestamp: DateTime<Utc>,
 
     // Optional fields for notification events
@@ -21,7 +22,7 @@ pub struct BaseMetadata {
     pub subscription_version: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct BaseEventMessage<T> {
     pub metadata: BaseMetadata,
     pub payload: T,

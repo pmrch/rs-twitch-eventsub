@@ -13,9 +13,10 @@ pub use tokio_tungstenite::tungstenite::protocol::Message;
 pub use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 pub use url::Url;
 
+pub use crate::controller::{EventType, TwitchController};
 pub use crate::session::{
     BaseEventMessage, BaseMetadata, ChannelChatMessage, ChatMessage, NotificationEvent,
-    keepalive_imports as keepalive, notification_imports as notification,
+    ReconnectMessage, keepalive_imports as keepalive, notification_imports as notification,
     welcome_imports as welcome,
 };
 pub use crate::utils::logging::setup_logger;

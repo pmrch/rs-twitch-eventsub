@@ -1,6 +1,6 @@
 use super::{BaseMetadata, DateTime, Deserialize, MessageId, Utc};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct WelcomeMetadata {
     #[serde(deserialize_with = "super::deserialize_message_id")]
     pub message_id: MessageId,
@@ -9,7 +9,7 @@ pub struct WelcomeMetadata {
     pub message_timestamp: DateTime<Utc>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct WelcomeSession {
     #[serde(deserialize_with = "super::from_rfc3339")]
     pub connected_at: DateTime<Utc>,
@@ -20,12 +20,12 @@ pub struct WelcomeSession {
     pub status: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct WelcomePayload {
     pub session: Option<WelcomeSession>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct WelcomeMessage {
     pub metadata: WelcomeMetadata,
     pub payload: WelcomePayload,
