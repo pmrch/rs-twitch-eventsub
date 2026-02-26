@@ -2,13 +2,15 @@ use tokio_tungstenite::connect_async;
 
 use super::helpers::handle_event;
 use super::{
-    Arc, BoxFuture, Client, EventMessage, EventType, FutureExt, HashMap, MaybeTlsStream, Message,
-    NotificationEvent, Result, RwLock, StreamExt, TcpStream, UserConfig, WebSocketStream,
+    Arc, BoxFuture, Client, DateTime, EventMessage, EventType, FutureExt, HashMap, MaybeTlsStream,
+    Message, NotificationEvent, Result, RwLock, StreamExt, TcpStream, UserConfig, Utc,
+    WebSocketStream,
 };
 
 type ArcCallbackMap<S, T> = Arc<RwLock<HashMap<S, T>>>;
-type FutType = dyn Fn(NotificationEvent) -> BoxFuture<'static, ()> + Send + Sync;
-type BoxedCallback = Box<dyn Fn(NotificationEvent) -> BoxFuture<'static, ()> + Send + Sync>;
+type FutType = dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync;
+#[rustfmt::skip]
+type BoxedCallback =Box<dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync>;
 pub struct TwitchController {
     ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
     session_id: Arc<RwLock<Option<String>>>,
@@ -34,10 +36,10 @@ impl TwitchController {
 
     pub async fn register_callback<F, Fut>(&self, event_type: EventType, callback: F)
     where
-        F: Fn(NotificationEvent) -> Fut + Send + Sync + 'static,
+        F: Fn(NotificationEvent, DateTime<Utc>) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = ()> + Send + 'static, {
         // Code block starts here
-        let boxed: BoxedCallback = Box::new(move |msg| callback(msg).boxed());
+        let boxed: BoxedCallback = Box::new(move |msg, dt| callback(msg, dt).boxed());
         let event_type_str: &String = &event_type.to_string();
 
         self.ntfy_callbacks.write().await.insert(event_type, boxed);
@@ -107,7 +109,11 @@ impl TwitchController {
     async fn handle_message(&self, msg: EventMessage) {
         match msg {
             EventMessage::Notification(ntf_msg) => {
-                self.handle_notification_event(ntf_msg.payload.event).await;
+                self.handle_notification_event(
+                    ntf_msg.payload.event,
+                    ntf_msg.metadata.message_timestamp,
+                )
+                .await;
             }
             EventMessage::Welcome(welc_msg) => {
                 let session_id: crate::prelude::welcome::WelcomeSession =
@@ -119,11 +125,11 @@ impl TwitchController {
         }
     }
 
-    async fn handle_notification_event(&self, event: NotificationEvent) {
+    async fn handle_notification_event(&self, event: NotificationEvent, dt: DateTime<Utc>) {
         match event {
             NotificationEvent::ChannelChatMessage(ccm) => {
                 if let Some(cb) = self.ntfy_callbacks.read().await.get(&EventType::ChatMessage) {
-                    cb(NotificationEvent::ChannelChatMessage(ccm)).await;
+                    cb(NotificationEvent::ChannelChatMessage(ccm), dt).await;
                 } else {
                     let msg: &str = "NotificationEvent was ChannelChatMessage, but there was no callback for it";
                     tracing::error!("{msg}");

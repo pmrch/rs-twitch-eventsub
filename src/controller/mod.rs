@@ -4,6 +4,7 @@ mod helpers;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 pub use controller_core::TwitchController;
 use futures::FutureExt;
 use futures::future::BoxFuture;
