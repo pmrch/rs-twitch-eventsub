@@ -1,4 +1,4 @@
-use crate::session::notification_events::MessageType;
+use super::{MessageId, MessageType};
 
 impl super::MessageType {
     #[must_use]
@@ -88,5 +88,16 @@ impl TryFrom<String> for MessageType {
             "channelpointshighlighted" => Ok(Self::ChannelPointsHighlighted),
             _ => Err(anyhow::anyhow!("Invalid option: {s}!")),
         }
+    }
+}
+
+impl std::fmt::Display for MessageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s: String = match self {
+            Self::StringId(suid) => suid.clone(),
+            Self::UuidId(uuid) => uuid.to_string(),
+        };
+
+        write!(f, "{s}")
     }
 }
