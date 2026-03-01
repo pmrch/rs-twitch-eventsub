@@ -1,15 +1,12 @@
 mod base;
-mod helpers;
 mod keepalive;
 mod notification;
 mod notification_events;
 mod reconnect;
+mod revocation;
 mod welcome;
 
-use chrono::{DateTime, Utc};
-use helpers::{deserialize_message_id, from_rfc3339};
-use serde::Deserialize;
-use uuid::Uuid;
+use crate::prelude::{DateTime, Deserialize, Utc, Uuid, deserialize_message_id, from_rfc3339};
 
 pub mod welcome_imports {
     pub use super::welcome::{WelcomeMessage, WelcomeMetadata, WelcomePayload, WelcomeSession};
@@ -25,6 +22,13 @@ pub mod notification_imports {
     pub use super::notification::{NotificationMessage, NotificationMetadata, NotificationPayload};
 }
 
-pub use base::{BaseEventMessage, BaseMetadata, MessageId};
+pub mod reconnect_imports {
+    pub use super::reconnect::{ReconnectMessage, ReconnectPayload};
+}
+
+pub mod revocation_imports {
+    pub use super::revocation::{RevocationMessage, RevocationPayload};
+}
+
+pub use base::{BaseEventMessage, BaseMetadata, MessageId, Subscription, Transport};
 pub use notification_events::{ChannelChatMessage, ChatMessage, NotificationEvent};
-pub use reconnect::{ReconnectMessage, ReconnectPayload};

@@ -1,15 +1,4 @@
-use super::{Deserialize, MessageId};
-
-#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum MessageType {
-    Text,
-    ChannelPointsHighlighted,
-    ChannelPointsSubOnly,
-    UserIntro,
-    PowerUpsMessageEffect,
-    PowerUpsGigantifiedEmote,
-}
+use super::{Deserialize, MessageId, MessageType};
 
 #[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct Badge {

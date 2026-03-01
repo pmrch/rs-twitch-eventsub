@@ -115,6 +115,13 @@ impl TwitchController {
                 )
                 .await;
             }
+            EventMessage::Revocation(rev_msg) => {
+                tracing::warn!(
+                    "Subscription event revoked - type: {}, version: {}",
+                    rev_msg.metadata.subscription_type,
+                    rev_msg.metadata.subscription_version
+                );
+            }
             EventMessage::Welcome(welc_msg) => {
                 let session_id: crate::prelude::welcome::WelcomeSession =
                     welc_msg.payload.session.unwrap();

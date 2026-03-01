@@ -27,3 +27,23 @@ pub struct BaseEventMessage<T> {
     pub metadata: BaseMetadata,
     pub payload: T,
 }
+
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
+pub struct Transport {
+    pub method: String,
+    pub session_id: String,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
+pub struct Subscription {
+    pub id: Uuid,
+    pub status: String,
+    #[serde(rename = "type")]
+    pub sub_type: String,
+    pub version: String,
+    pub cost: u32,
+    pub condition: serde_json::Value,
+    pub transport: Transport,
+    #[serde(deserialize_with = "super::from_rfc3339")]
+    pub created_at: DateTime<Utc>,
+}

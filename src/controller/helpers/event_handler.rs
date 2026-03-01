@@ -1,7 +1,7 @@
 use super::super::{
     Arc, BaseEventMessage, Client, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
-    NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RwLock, UserConfig,
-    WelcomeMessage, WelcomePayload,
+    NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RevocationMessage,
+    RevocationPayload, RwLock, UserConfig, WelcomeMessage, WelcomePayload,
 };
 use super::subscribe_to_chat;
 
@@ -28,6 +28,7 @@ pub enum EventMessage {
     Keepalive(KeepaliveMessage),
     Notification(NotificationMessage),
     Reconnect(ReconnectMessage),
+    Revocation(RevocationMessage),
     None,
 }
 
@@ -77,22 +78,11 @@ pub async fn handle_event(
         "session_keepalive" => match serde_json::from_value::<KeepalivePayload>(peek.payload) {
             Ok(payload) => {
                 let msg: KeepaliveMessage = KeepaliveMessage::from_base(peek.metadata, payload);
-                tracing::debug!("Got session_keepalive");
+                tracing::debug!("Got session_keepalive message");
                 Ok(EventMessage::Keepalive(msg))
             }
             Err(e) => {
                 tracing::error!("Failed to parse keepalive: {e}");
-                Err(Error::SerdeError(e))
-            }
-        },
-        "session_reconnect" => match serde_json::from_value::<ReconnectPayload>(peek.payload) {
-            Ok(payload) => {
-                let msg: ReconnectMessage = ReconnectMessage::from_base(peek.metadata, payload);
-                tracing::info!("Got session_reconnect");
-                Ok(EventMessage::Reconnect(msg))
-            }
-            Err(e) => {
-                tracing::error!("Failed to parse reconnect: {e}");
                 Err(Error::SerdeError(e))
             }
         },
@@ -101,11 +91,33 @@ pub async fn handle_event(
                 let msg: NotificationMessage =
                     NotificationMessage::from_base(peek.metadata, payload);
 
-                tracing::debug!("Got notification");
+                tracing::debug!("Got notification message");
                 Ok(EventMessage::Notification(msg))
             }
             Err(e) => {
                 tracing::error!("Failed to parse notification: {e}");
+                Err(Error::SerdeError(e))
+            }
+        },
+        "session_reconnect" => match serde_json::from_value::<ReconnectPayload>(peek.payload) {
+            Ok(payload) => {
+                let msg: ReconnectMessage = ReconnectMessage::from_base(peek.metadata, payload);
+                tracing::info!("Got session_reconnect message");
+                Ok(EventMessage::Reconnect(msg))
+            }
+            Err(e) => {
+                tracing::error!("Failed to parse reconnect: {e}");
+                Err(Error::SerdeError(e))
+            }
+        },
+        "revocation" => match serde_json::from_value::<RevocationPayload>(peek.payload) {
+            Ok(payload) => {
+                let msg: RevocationMessage = RevocationMessage::from_base(peek.metadata, payload)?;
+                tracing::info!("Got revocation message");
+                Ok(EventMessage::Revocation(msg))
+            }
+            Err(e) => {
+                tracing::error!("Failed to parse revocation: {e}");
                 Err(Error::SerdeError(e))
             }
         },

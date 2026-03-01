@@ -1,6 +1,6 @@
 use super::{
-    BaseMetadata, ChannelChatMessage, DateTime, Deserialize, MessageId, NotificationEvent, Utc,
-    Uuid,
+    BaseMetadata, ChannelChatMessage, DateTime, Deserialize, MessageId, NotificationEvent,
+    Subscription, Utc,
 };
 
 #[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
@@ -14,25 +14,6 @@ pub struct NotificationMetadata {
     pub subscription_version: String,
 }
 
-#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
-pub struct Transport {
-    pub method: String,
-    pub session_id: String,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq, Hash)]
-pub struct Subscription {
-    pub id: Uuid,
-    pub status: String,
-    #[serde(rename = "type")]
-    pub sub_type: String,
-    pub version: String,
-    pub cost: u32,
-    pub condition: serde_json::Value,
-    pub transport: Transport,
-    #[serde(deserialize_with = "super::from_rfc3339")]
-    pub created_at: DateTime<Utc>,
-}
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct NotificationPayload {
     pub subscription: Subscription,

@@ -5,9 +5,8 @@ use super::{Arc, RClient, Result, UserConfig, json};
 ///
 /// # Errors
 ///
-/// - Returns `reqwest::Error` if if there was an error while sending
-///   request to API endpoint
-///
+/// - Returns `reqwest::Error` if if there was an error while sending request to
+///   API endpoint
 pub async fn subscribe_to_chat(
     client: Arc<RClient>,
     session_id: &str,
