@@ -14,6 +14,7 @@ carefully chosen subset of events:
 - ✅ `session_keepalive`
 - ✅ `session_reconnect`
 - ✅ `notification` (with `channel.chat.message`)
+- ✅ `revocation` (logged as a warning)
 - ⚠️ Other events are recognized but ignored with a warning.
 
 This library is **not** a full Twitch SDK — it's meant for small integrations, personal bots, and experiments where you only need core 
@@ -43,12 +44,11 @@ async fn main() -> anyhow::Result<()> {
     let mut twitch_controller: TwitchController = create_twitch_controller().await?;
 
     twitch_controller
-        .register_callback(EventType::ChatMessage, |event| async move {
+        .register_callback(EventType::ChatMessage, |event, _dt /*Where _dt is DateTime<Utc> from `chrono`*/| async move {
             if let NotificationEvent::ChannelChatMessage(ccm) = event {
                 println!("{}: {}", ccm.chatter_user_name, ccm.message.text);
             }
-        })
-        .await;
+        }).await;
 
     twitch_controller.start().await?;
     Ok(())
@@ -65,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
 | `session_keepalive` | Keeps the connection alive | ✅ |
 | `session_reconnect` | Transparently reconnects to the new URL provided by Twitch | ✅ |
 | `notification` | Handles `channel.chat.message` | ✅ |
+| `revocation` | Logs subscription revocation as a warning | ✅ |
 | *other events* | Logged but ignored | ⚠️ ignored |
 
 ---
