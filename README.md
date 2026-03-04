@@ -7,13 +7,13 @@ It's built on top of **tokio**, **reqwest**, and **tokio-tungstenite**, with a f
 
 ## ⚡ Overview
 
-`rs-twitch-eventsub` sets up a Twitch EventSub WebSocket session, automatically subscribes to chat messages, and handles a small, 
+`rs-twitch-eventsub` sets up a Twitch EventSub WebSocket session, automatically subscribes to events, and handles a small, 
 carefully chosen subset of events:
 
 - ✅ `session_welcome`
 - ✅ `session_keepalive`
 - ✅ `session_reconnect`
-- ✅ `notification` (with `channel.chat.message`)
+- ✅ `notification` (with `channel.chat.message` and `channel.cheer`)
 - ✅ `revocation` (logged as a warning)
 - ⚠️ Other events are recognized but ignored with a warning.
 
@@ -38,15 +38,27 @@ async fn main() -> anyhow::Result<()> {
     // tracing::subscriber::set_global_default(subscriber)?;
 
     // Or use the library-provided logger setup that logs to file in `logs/` on your
-    // project root, and also log to console
-    // setup_logger()?;
+    // project root, and also logs to console
+    // setup_logger(None)?; // None defaults to "info" level
+    // setup_logger(Some("debug"))?; // or specify a level
 
-    let mut twitch_controller: TwitchController = create_twitch_controller().await?;
+    let mut twitch_controller: TwitchController = create_twitch_controller(None).await?;
+
+    // Optional: use local Twitch CLI WebSocket server for dev/testing
+    // let mut twitch_controller = create_twitch_controller(Some("ws://127.0.0.1:8080/ws")).await?;
+    // twitch_controller.set_dev_mode("http://127.0.0.1:8080/eventsub/subscriptions");
 
     twitch_controller
-        .register_callback(EventType::ChatMessage, |event, _dt /*Where _dt is DateTime<Utc> from `chrono`*/| async move {
+        .register_callback(EventType::ChatMessage, |event, _dt| async move {
             if let NotificationEvent::ChannelChatMessage(ccm) = event {
                 println!("{}: {}", ccm.chatter_user_name, ccm.message.text);
+            }
+        }).await;
+
+    twitch_controller
+        .register_callback(EventType::Bits, |event, _dt| async move {
+            if let NotificationEvent::ChannelCheer(ccb) = event {
+                println!("{} cheered {} bits!", ccb.user_name.as_deref().unwrap_or("anonymous"), ccb.bits);
             }
         }).await;
 
@@ -61,10 +73,10 @@ async fn main() -> anyhow::Result<()> {
 
 | Event Type | Description | Status |
 |-------------|--------------|--------|
-| `session_welcome` | Saves session ID and subscribes to chat | ✅ |
+| `session_welcome` | Saves session ID and subscribes to events | ✅ |
 | `session_keepalive` | Keeps the connection alive | ✅ |
 | `session_reconnect` | Transparently reconnects to the new URL provided by Twitch | ✅ |
-| `notification` | Handles `channel.chat.message` | ✅ |
+| `notification` | Handles `channel.chat.message` and `channel.cheer` | ✅ |
 | `revocation` | Logs subscription revocation as a warning | ✅ |
 | *other events* | Logged but ignored | ⚠️ ignored |
 
@@ -81,9 +93,13 @@ Example `.env` file:
 ```
 TWITCH_CLIENT_ID=your_client_id
 TWITCH_CLIENT_SECRET=your_client_secret
-USER_ID=your_client_id
+USER_ID=your_bot_user_id
 BROADCASTER_ID=target_channel_id
+TWITCH_USER_TOKEN=your_user_access_token
 ```
+
+> ⚠️ `channel.cheer` requires a **broadcaster** user access token with the `bits:read` scope — the bot's token is not sufficient.
+> For local testing, use the [Twitch CLI](https://dev.twitch.tv/docs/cli/) mock WebSocket server with `set_dev_mode()`.
 
 ---
 
@@ -103,9 +119,8 @@ Once the API is stable and documented, I might publish to crates.io.
 
 ## 🪶 Tracing / Logging
 
-`twitch-eventsub` never sets a global tracing subscriber (that would violate library crate rules).  
-If you want logs with tracing, configure a global one yourself, since logging is already present
-in my current code, or use the provided function `setup_logger()` exposed through global `prelude.rs`:
+`twitch-eventsub` never sets a global tracing subscriber by itself (that would violate library crate rules).  
+If you want logs with tracing, configure a global one yourself, or use the provided `setup_logger()` exposed through `prelude.rs`:
 
 ```rust
 use tracing_subscriber::FmtSubscriber;
@@ -116,14 +131,39 @@ let subscriber = FmtSubscriber::builder()
 tracing::subscriber::set_global_default(subscriber)?;
 ```
 
-Or use the predefined logger that logs to file in `logs/` and to console with INFO level:
+Or use the predefined logger that logs to file in `logs/` and to console:
 ```rust
 use twitch_eventsub::prelude::setup_logger;
 
-setup_logger()?;
+setup_logger(None)?;          // defaults to "info"
+setup_logger(Some("debug"))?; // or specify a level
+setup_logger(Some("trace"))?; // for full granularity
 ```
 
-If you don't, it'll stay silent.
+If you don't set up any logger, it'll stay silent.
+
+---
+
+## 🧪 Local Development / Testing
+
+To test without connecting to real Twitch, use the [Twitch CLI](https://dev.twitch.tv/docs/cli/) mock WebSocket server:
+
+```bash
+twitch event websocket start-server
+```
+
+Then point your controller at the local server:
+
+```rust
+let mut controller = create_twitch_controller(Some("ws://127.0.0.1:8080/ws")).await?;
+controller.set_dev_mode("http://127.0.0.1:8080/eventsub/subscriptions");
+```
+
+Trigger mock events in a separate terminal:
+
+```bash
+twitch event trigger cheer -F ws://127.0.0.1:8080/ws --transport websocket
+```
 
 ---
 
