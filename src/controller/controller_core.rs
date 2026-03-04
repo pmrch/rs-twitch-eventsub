@@ -1,10 +1,10 @@
 use tokio_tungstenite::connect_async;
 
-use super::helpers::{handle_event, hne};
+use super::helpers::{handle_event, handle_ws_error, hne};
 use super::{
-    Arc, ArcCallbackMap, BoxedCallback, Client, DateTime, EventMessage, EventType, FutType,
-    FutureExt, HashMap, MaybeTlsStream, Message, NotificationEvent, Result, RwLock, StreamExt,
-    TcpStream, UserConfig, Utc, WebSocketStream,
+    Arc, ArcCallbackMap, BoxedCallback, Client, DateTime, ErrorAction, EventMessage, EventType,
+    FutType, FutureExt, HashMap, MaybeTlsStream, Message, NotificationEvent, Result, RwLock,
+    StreamExt, TcpStream, UserConfig, Utc, WebSocketStream,
 };
 
 pub struct TwitchController {
@@ -13,7 +13,8 @@ pub struct TwitchController {
     http_client: Arc<Client>,
     user_config: UserConfig,
     ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
-    local_sub_endpoint: Option<String>,
+    http_endpoint: String,
+    ws_endpoint: String,
 }
 
 impl TwitchController {
@@ -21,6 +22,7 @@ impl TwitchController {
         ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
         client: Client,
         user_config: UserConfig,
+        ws_endpoint: String,
     ) -> Self {
         Self {
             ws,
@@ -28,12 +30,14 @@ impl TwitchController {
             http_client: Arc::new(client),
             user_config,
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
-            local_sub_endpoint: None,
+            http_endpoint: String::from("https://api.twitch.tv/helix/eventsub/subscriptions"),
+            ws_endpoint,
         }
     }
 
-    pub fn set_dev_mode(&mut self, http_endpoint: &str) {
-        self.local_sub_endpoint = Some(http_endpoint.to_string());
+    pub fn set_dev_mode(&mut self, http_endpoint: &str, ws_endpoint: String) {
+        self.http_endpoint = http_endpoint.to_string();
+        self.ws_endpoint = ws_endpoint;
     }
 
     pub async fn register_callback<F, Fut>(&self, event_type: EventType, callback: F)
@@ -68,11 +72,12 @@ impl TwitchController {
                         http_client,
                         &self.user_config,
                         is_reconnect,
-                        self.local_sub_endpoint.as_deref(),
+                        &self.http_endpoint,
                     )
                     .await?;
 
                     if let EventMessage::Reconnect(r) = &msg {
+                        self.ws_endpoint.clone_from(&r.payload.session.reconnect_url);
                         self.reconnect(r.payload.session.reconnect_url.clone()).await?;
                         is_reconnect = true;
                     } else {
@@ -87,7 +92,11 @@ impl TwitchController {
                     tracing::warn!("WebSocket closed: {frame:?}");
                 }
                 Ok(_) => (),
-                Err(e) => tracing::error!("Error in main loop: {e}"),
+                Err(e) => match handle_ws_error(e) {
+                    ErrorAction::Skip => (),
+                    ErrorAction::Reconnect => self.reconnect(self.http_endpoint.clone()).await?,
+                    ErrorAction::Fatal(reason) => return Err(reason),
+                },
             }
         }
 

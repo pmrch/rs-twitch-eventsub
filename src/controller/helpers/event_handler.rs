@@ -47,7 +47,7 @@ pub async fn handle_event(
     http_client: Arc<Client>,
     user_config: &UserConfig,
     is_reconnect: bool,
-    url: Option<&str>,
+    url: &str,
 ) -> Result<EventMessage> {
     tracing::trace!("Handling event: {raw}");
     let peek: BaseEventMessage<serde_json::Value> = serde_json::from_str(raw)?;

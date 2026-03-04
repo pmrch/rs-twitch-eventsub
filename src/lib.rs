@@ -35,7 +35,9 @@ pub async fn create_twitch_controller(url: Option<&str>) -> Result<TwitchControl
     let https_client: Client = ClientBuilder::new().redirect(Policy::none()).build()?;
     let config: UserConfig = UserConfig::from_env()?;
 
-    let controller: TwitchController = TwitchController::new(ws_stream, https_client, config);
+    let controller: TwitchController =
+        TwitchController::new(ws_stream, https_client, config, url.to_string());
+
     tracing::info!("Created controller, you can add handlers with `.register_callback()`");
     Ok(controller)
 }

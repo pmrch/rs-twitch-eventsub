@@ -7,7 +7,7 @@ use std::sync::Arc;
 pub use controller_core::TwitchController;
 use futures::FutureExt;
 use futures::future::BoxFuture;
-pub use helpers::{EventMessage, EventType};
+pub use helpers::{ErrorAction, EventMessage, EventType};
 use tokio::sync::RwLock;
 
 use crate::prelude::keepalive::{KeepaliveMessage, KeepalivePayload};

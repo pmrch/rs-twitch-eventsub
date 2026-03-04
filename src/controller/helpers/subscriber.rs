@@ -11,7 +11,7 @@ pub async fn subscribe_to_chat(
     client: Arc<RClient>,
     session_id: &str,
     config: &UserConfig,
-    url: Option<&str>,
+    url: &str,
 ) -> Result<()> {
     let body: serde_json::Value = json!({
         "type": "channel.chat.message",
@@ -26,7 +26,6 @@ pub async fn subscribe_to_chat(
         }
     });
 
-    let url: &str = url.map_or("https://api.twitch.tv/helix/eventsub/subscriptions", |u| u);
     let response: reqwest::Response = client
         .post(url)
         .header("Authorization", format!("Bearer {}", config.user_token))
@@ -50,7 +49,7 @@ pub async fn subscribe_to_bits(
     client: Arc<RClient>,
     session_id: &str,
     config: &UserConfig,
-    url: Option<&str>,
+    url: &str,
 ) -> Result<()> {
     let body: serde_json::Value = json!({
         "type": "channel.cheer",
@@ -65,7 +64,6 @@ pub async fn subscribe_to_bits(
         }
     });
 
-    let url: &str = url.map_or("https://api.twitch.tv/helix/eventsub/subscriptions", |u| u);
     let response: reqwest::Response = client
         .post(url)
         .header("Authorization", format!("Bearer {}", config.user_token))
