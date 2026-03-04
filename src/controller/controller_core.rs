@@ -94,7 +94,7 @@ impl TwitchController {
                 Ok(_) => (),
                 Err(e) => match handle_ws_error(e) {
                     ErrorAction::Skip => (),
-                    ErrorAction::Reconnect => self.reconnect(self.http_endpoint.clone()).await?,
+                    ErrorAction::Reconnect => self.reconnect(self.ws_endpoint.clone()).await?,
                     ErrorAction::Fatal(reason) => return Err(reason),
                 },
             }
@@ -111,11 +111,34 @@ impl TwitchController {
     /// - Returns `tokio_tungstenite::error::Error` if failed to reconnect to
     ///   the new URL given by the Twitch API
     pub async fn reconnect(&mut self, reconnect_url: String) -> Result<()> {
-        tracing::info!("Reconnecting to {reconnect_url}");
-        let (ws_stream, _) = connect_async(reconnect_url).await?;
-        self.ws = ws_stream;
-        tracing::info!("Reconnected successfully");
-        Ok(())
+        const MAX_RETRIES: u32 = 5;
+        let mut attempt = 0;
+
+        loop {
+            attempt += 1;
+            tracing::info!("Reconnect attempt {attempt}/{MAX_RETRIES} to {reconnect_url}");
+
+            match connect_async(&reconnect_url).await {
+                Ok((ws_stream, _)) => {
+                    self.ws = ws_stream;
+                    tracing::info!("Reconnected successfully on attempt {attempt}");
+                    return Ok(());
+                }
+                Err(e) => {
+                    if attempt >= MAX_RETRIES {
+                        tracing::error!("All {MAX_RETRIES} reconnect attempts failed, giving up");
+                        return Err(e.into());
+                    }
+
+                    let delay = std::time::Duration::from_secs(2u64.pow(attempt));
+                    tracing::warn!(
+                        "Reconnect attempt {attempt} failed: {e}, retrying in {}s",
+                        delay.as_secs()
+                    );
+                    tokio::time::sleep(delay).await;
+                }
+            }
+        }
     }
 
     async fn handle_message(&self, msg: EventMessage) {
