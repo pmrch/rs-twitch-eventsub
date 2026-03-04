@@ -1,6 +1,6 @@
 use super::{
-    BaseMetadata, ChannelChatMessage, DateTime, Deserialize, MessageId, NotificationEvent,
-    Subscription, Utc,
+    BaseMetadata, CC as ChannelCheer, CCM as ChannelChatMessage, DateTime, Deserialize, MessageId,
+    NotificationEvent, Subscription, Utc,
 };
 
 #[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
@@ -62,6 +62,12 @@ impl<'de> Deserialize<'de> for NotificationPayload {
                 let ccm: ChannelChatMessage =
                     serde_json::from_value(raw.event).map_err(serde::de::Error::custom)?;
                 NotificationEvent::ChannelChatMessage(Box::new(ccm))
+            }
+            "channel.cheer" => {
+                let ccb: ChannelCheer =
+                    serde_json::from_value(raw.event).map_err(serde::de::Error::custom)?;
+
+                NotificationEvent::ChannelCheer(Box::new(ccb))
             }
             other => NotificationEvent::Other(serde_json::Value::String(other.to_string())),
         };

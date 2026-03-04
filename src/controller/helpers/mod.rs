@@ -1,11 +1,11 @@
 mod event_handler;
+mod notification_handler;
 mod subscriber;
 
-use std::sync::Arc;
-
 pub use event_handler::{EventMessage, EventType, handle_event};
-use reqwest::Client as RClient;
+pub use notification_handler::handle_notification_event as hne;
 use serde_json::json;
-pub use subscriber::subscribe_to_chat;
+pub use subscriber::{subscribe_to_bits, subscribe_to_chat};
 
-use crate::prelude::{Result, UserConfig};
+use super::{Arc, ArcCallbackMap, FutType};
+use crate::prelude::{Client as RClient, DateTime, NotificationEvent, Result, UserConfig, Utc};

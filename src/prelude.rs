@@ -18,8 +18,8 @@ pub use uuid::Uuid;
 
 pub use crate::controller::{EventType, TwitchController};
 pub use crate::session::{
-    BaseEventMessage, BaseMetadata, ChannelChatMessage, ChatMessage, MessageId, NotificationEvent,
-    keepalive_imports as keepalive, notification_imports as notification,
+    BaseEventMessage, BaseMetadata, CCM as ChannelChatMessage, ChatMessage, MessageId,
+    NotificationEvent, keepalive_imports as keepalive, notification_imports as notification,
     reconnect_imports as reconnect, revocation_imports as revocation, welcome_imports as welcome,
 };
 pub use crate::utils::logging::setup_logger;

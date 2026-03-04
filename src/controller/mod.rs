@@ -17,3 +17,9 @@ use crate::prelude::revocation::{RevocationMessage, RevocationPayload};
 use crate::prelude::welcome::{WelcomeMessage, WelcomePayload};
 use crate::prelude::*;
 pub use crate::session::ChatMessage;
+
+pub type ArcCallbackMap<S, T> = Arc<RwLock<HashMap<S, T>>>;
+pub type FutType = dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync;
+
+pub type BoxedCallback =
+    Box<dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync>;

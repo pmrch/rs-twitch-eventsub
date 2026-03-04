@@ -3,7 +3,7 @@ use super::super::{
     NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RevocationMessage,
     RevocationPayload, RwLock, UserConfig, WelcomeMessage, WelcomePayload,
 };
-use super::subscribe_to_chat;
+use super::{subscribe_to_bits, subscribe_to_chat};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum EventType {
@@ -47,10 +47,10 @@ pub async fn handle_event(
     http_client: Arc<Client>,
     user_config: &UserConfig,
     is_reconnect: bool,
+    url: Option<&str>,
 ) -> Result<EventMessage> {
-    tracing::debug!("Handling event: {raw}");
+    tracing::trace!("Handling event: {raw}");
     let peek: BaseEventMessage<serde_json::Value> = serde_json::from_str(raw)?;
-
     match peek.metadata.message_type.as_str() {
         "session_welcome" => {
             let payload: WelcomePayload = serde_json::from_value(peek.payload)?;
@@ -70,7 +70,8 @@ pub async fn handle_event(
                     .clone()
                     .ok_or_else(|| Error::NoneError("Tried to read None session ID".into()))?;
 
-                subscribe_to_chat(http_client, &session_id, user_config).await?;
+                subscribe_to_chat(Arc::clone(&http_client), &session_id, user_config, url).await?;
+                subscribe_to_bits(Arc::clone(&http_client), &session_id, user_config, url).await?;
             }
 
             Ok(EventMessage::Welcome(msg))
@@ -78,7 +79,7 @@ pub async fn handle_event(
         "session_keepalive" => match serde_json::from_value::<KeepalivePayload>(peek.payload) {
             Ok(payload) => {
                 let msg: KeepaliveMessage = KeepaliveMessage::from_base(peek.metadata, payload);
-                tracing::debug!("Got session_keepalive message");
+                tracing::trace!("Got session_keepalive message");
                 Ok(EventMessage::Keepalive(msg))
             }
             Err(e) => {
@@ -91,7 +92,7 @@ pub async fn handle_event(
                 let msg: NotificationMessage =
                     NotificationMessage::from_base(peek.metadata, payload);
 
-                tracing::debug!("Got notification message");
+                tracing::trace!("Got notification message");
                 Ok(EventMessage::Notification(msg))
             }
             Err(e) => {

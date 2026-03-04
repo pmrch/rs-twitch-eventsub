@@ -1,22 +1,19 @@
 use tokio_tungstenite::connect_async;
 
-use super::helpers::handle_event;
+use super::helpers::{handle_event, hne};
 use super::{
-    Arc, BoxFuture, Client, DateTime, EventMessage, EventType, FutureExt, HashMap, MaybeTlsStream,
-    Message, NotificationEvent, Result, RwLock, StreamExt, TcpStream, UserConfig, Utc,
-    WebSocketStream,
+    Arc, ArcCallbackMap, BoxedCallback, Client, DateTime, EventMessage, EventType, FutType,
+    FutureExt, HashMap, MaybeTlsStream, Message, NotificationEvent, Result, RwLock, StreamExt,
+    TcpStream, UserConfig, Utc, WebSocketStream,
 };
 
-type ArcCallbackMap<S, T> = Arc<RwLock<HashMap<S, T>>>;
-type FutType = dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync;
-#[rustfmt::skip]
-type BoxedCallback =Box<dyn Fn(NotificationEvent, DateTime<Utc>) -> BoxFuture<'static, ()> + Send + Sync>;
 pub struct TwitchController {
     ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
     session_id: Arc<RwLock<Option<String>>>,
     http_client: Arc<Client>,
     user_config: UserConfig,
     ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
+    local_sub_endpoint: Option<String>,
 }
 
 impl TwitchController {
@@ -31,7 +28,12 @@ impl TwitchController {
             http_client: Arc::new(client),
             user_config,
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
+            local_sub_endpoint: None,
         }
+    }
+
+    pub fn set_dev_mode(&mut self, http_endpoint: &str) {
+        self.local_sub_endpoint = Some(http_endpoint.to_string());
     }
 
     pub async fn register_callback<F, Fut>(&self, event_type: EventType, callback: F)
@@ -66,6 +68,7 @@ impl TwitchController {
                         http_client,
                         &self.user_config,
                         is_reconnect,
+                        self.local_sub_endpoint.as_deref(),
                     )
                     .await?;
 
@@ -109,11 +112,9 @@ impl TwitchController {
     async fn handle_message(&self, msg: EventMessage) {
         match msg {
             EventMessage::Notification(ntf_msg) => {
-                self.handle_notification_event(
-                    ntf_msg.payload.event,
-                    ntf_msg.metadata.message_timestamp,
-                )
-                .await;
+                let cloned_callbacks = Arc::clone(&self.ntfy_callbacks);
+                hne(ntf_msg.payload.event, ntf_msg.metadata.message_timestamp, cloned_callbacks)
+                    .await;
             }
             EventMessage::Revocation(rev_msg) => {
                 tracing::warn!(
@@ -129,20 +130,6 @@ impl TwitchController {
                 tracing::info!("Saved current session ID: {}", session_id.id);
             }
             _ => (),
-        }
-    }
-
-    async fn handle_notification_event(&self, event: NotificationEvent, dt: DateTime<Utc>) {
-        match event {
-            NotificationEvent::ChannelChatMessage(ccm) => {
-                if let Some(cb) = self.ntfy_callbacks.read().await.get(&EventType::ChatMessage) {
-                    cb(NotificationEvent::ChannelChatMessage(ccm), dt).await;
-                } else {
-                    let msg: &str = "NotificationEvent was ChannelChatMessage, but there was no callback for it";
-                    tracing::error!("{msg}");
-                }
-            }
-            NotificationEvent::Other(_) => (),
         }
     }
 }

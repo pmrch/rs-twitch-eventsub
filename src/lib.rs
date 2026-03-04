@@ -19,15 +19,19 @@ use rustls::crypto;
 /// # Panics
 ///
 /// - Panics if TLS initialization fails
-pub async fn create_twitch_controller() -> Result<TwitchController> {
+pub async fn create_twitch_controller(url: Option<&str>) -> Result<TwitchController> {
     dotenv::dotenv()?;
     crypto::ring::default_provider()
         .install_default()
         .expect("Failed to initialize TLS");
 
-    let url: Url = Url::parse("wss://eventsub.wss.twitch.tv/ws")?;
-    let (ws_stream, _) = connect_async(url.to_string()).await?;
+    let url: Url = if let Some(u) = url {
+        Url::parse(u)?
+    } else {
+        Url::parse("wss://eventsub.wss.twitch.tv/ws")?
+    };
 
+    let (ws_stream, _) = connect_async(url.to_string()).await?;
     let https_client: Client = ClientBuilder::new().redirect(Policy::none()).build()?;
     let config: UserConfig = UserConfig::from_env()?;
 

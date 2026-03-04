@@ -31,4 +31,4 @@ pub mod revocation_imports {
 }
 
 pub use base::{BaseEventMessage, BaseMetadata, MessageId, Subscription, Transport};
-pub use notification_events::{ChannelChatMessage, ChatMessage, NotificationEvent};
+pub use notification_events::{CC, CCM, ChatMessage, NotificationEvent};

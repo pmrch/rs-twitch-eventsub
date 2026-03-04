@@ -21,7 +21,7 @@ fn create_today_string() -> String {
 /// - Returns `SetGlobalDefaultError` if this config couldn't be set for global
 ///   logging
 /// - Returns `ParseError` if specified logging directive was invalid
-pub fn setup_logger() -> Result<()> {
+pub fn setup_logger(level: Option<&str>) -> Result<()> {
     let (cwriter, cguard) = non_blocking(std::io::stdout());
     std::mem::forget(cguard);
     let console_layer = fmt::layer()
@@ -47,7 +47,8 @@ pub fn setup_logger() -> Result<()> {
         .with_writer(fwriter)
         .pretty();
 
-    let filter: EnvFilter = EnvFilter::default().add_directive("chat_reader=info".parse()?);
+    let directive: &str = level.map_or("info", |lvl| lvl);
+    let filter: EnvFilter = EnvFilter::from_default_env().add_directive(directive.parse()?);
     let sub = tracing_subscriber::registry().with(console_layer).with(file_layer).with(filter);
 
     tracing::subscriber::set_global_default(sub)?;
