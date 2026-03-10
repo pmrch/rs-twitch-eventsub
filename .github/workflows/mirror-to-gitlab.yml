@@ -34,4 +34,5 @@ jobs:
           
           # Now you can use standard git syntax
           git remote add gitlab git@git-ssh.pdev2k.pw:publicprojects/rs-twitch-eventsub.git
-          git push gitlab --mirror
+          git push gitlab --all --force
+          git push gitlab --tags --force
