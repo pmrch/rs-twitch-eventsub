@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
     let mut twitch_controller: TwitchController = create_twitch_controller(None).await?;
 
     // Optional: use local Twitch CLI WebSocket server for dev/testing
+    // For this purpose I added `set_dev_mode()`
     // let mut twitch_controller = create_twitch_controller(Some("ws://127.0.0.1:8080/ws")).await?;
     // twitch_controller.set_dev_mode("http://127.0.0.1:8080/eventsub/subscriptions");
 
