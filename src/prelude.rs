@@ -1,6 +1,8 @@
 pub use crate::error::Error;
 pub type Result<T> = std::result::Result<T, Error>;
 
+pub use std::collections::HashMap;
+
 pub use anyhow::anyhow;
 pub use chrono::{DateTime, Utc};
 pub use futures::future::BoxFuture;

@@ -8,7 +8,7 @@ pub use controller_core::TwitchController;
 use futures::FutureExt;
 use futures::future::BoxFuture;
 pub use helpers::{ErrorAction, EventMessage, EventType};
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::prelude::keepalive::{KeepaliveMessage, KeepalivePayload};
 use crate::prelude::notification::{NotificationMessage, NotificationPayload};

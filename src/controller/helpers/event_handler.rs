@@ -1,9 +1,8 @@
 use super::super::{
     Arc, BaseEventMessage, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
     NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RevocationMessage,
-    RevocationPayload, WelcomeMessage, WelcomePayload
+    RevocationPayload, WelcomeMessage, WelcomePayload,
 };
-
 use super::Subscriber;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -45,7 +44,7 @@ pub enum EventMessage {
 pub async fn handle_event(
     raw: &str,
     is_reconnect: bool,
-    subscriber: Arc<Subscriber>
+    subscriber: Arc<Subscriber>,
 ) -> Result<EventMessage> {
     tracing::trace!("Handling event: {raw}");
     let peek: BaseEventMessage<serde_json::Value> = serde_json::from_str(raw)?;
@@ -62,7 +61,8 @@ pub async fn handle_event(
             if is_reconnect {
                 tracing::info!("Reconnect welcome received, skipping subscription");
             } else {
-                
+                subscriber.subscribe(EventType::ChatMessage).await?;
+                subscriber.subscribe(EventType::Bits).await?;
             }
 
             Ok(EventMessage::Welcome(msg))

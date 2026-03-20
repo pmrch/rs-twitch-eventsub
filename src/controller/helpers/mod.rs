@@ -10,5 +10,8 @@ pub use subscriber::Subscriber;
 pub use tokio_tungstenite::tungstenite::Error as TungError;
 pub use ws_error_handler::{ErrorAction, handle_ws_error};
 
-use super::{Arc, RwLock, ArcCallbackMap, FutType};
-use crate::prelude::{Client as RClient, ClientBuilder, DateTime, NotificationEvent, Policy, Result, UserConfig, Utc};
+use super::{Arc, ArcCallbackMap, FutType, Mutex};
+use crate::prelude::{
+    Client as RClient, ClientBuilder, DateTime, HashMap, NotificationEvent, Policy, Result,
+    UserConfig, Utc,
+};
