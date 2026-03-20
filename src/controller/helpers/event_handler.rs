@@ -1,9 +1,9 @@
 use super::super::{
-    Arc, BaseEventMessage, Client, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
+    Arc, BaseEventMessage, Error, KeepaliveMessage, KeepalivePayload, NotificationMessage,
     NotificationPayload, ReconnectMessage, ReconnectPayload, Result, RevocationMessage,
-    RevocationPayload, RwLock, UserConfig, WelcomeMessage, WelcomePayload,
+    RevocationPayload, WelcomeMessage, WelcomePayload,
 };
-use super::{subscribe_to_bits, subscribe_to_chat};
+use super::Subscriber;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum EventType {
@@ -43,11 +43,8 @@ pub enum EventMessage {
 /// - Returns `reqwest::Error` if subscribing to the event was unsuccessful
 pub async fn handle_event(
     raw: &str,
-    session_id: Arc<RwLock<Option<String>>>,
-    http_client: Arc<Client>,
-    user_config: &UserConfig,
     is_reconnect: bool,
-    url: &str,
+    subscriber: Arc<Subscriber>,
 ) -> Result<EventMessage> {
     tracing::trace!("Handling event: {raw}");
     let peek: BaseEventMessage<serde_json::Value> = serde_json::from_str(raw)?;
@@ -57,21 +54,15 @@ pub async fn handle_event(
             let msg: WelcomeMessage = WelcomeMessage::from_base(peek.metadata, payload);
 
             if let Some(session) = &msg.payload.session {
-                *session_id.write().await = Some(session.id.clone());
+                subscriber.set_session_id(&session.id).await;
                 tracing::debug!("Got session_welcome.");
             }
 
             if is_reconnect {
                 tracing::info!("Reconnect welcome received, skipping subscription");
             } else {
-                let session_id: String = session_id
-                    .read()
-                    .await
-                    .clone()
-                    .ok_or_else(|| Error::NoneError("Tried to read None session ID".into()))?;
-
-                subscribe_to_chat(Arc::clone(&http_client), &session_id, user_config, url).await?;
-                subscribe_to_bits(Arc::clone(&http_client), &session_id, user_config, url).await?;
+                subscriber.subscribe(EventType::ChatMessage).await?;
+                subscriber.subscribe(EventType::Bits).await?;
             }
 
             Ok(EventMessage::Welcome(msg))

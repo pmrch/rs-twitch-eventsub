@@ -1,42 +1,32 @@
 use tokio_tungstenite::connect_async;
 
-use super::helpers::{handle_event, handle_ws_error, hne};
+use super::helpers::{Subscriber, handle_event, handle_ws_error, hne};
 use super::{
-    Arc, ArcCallbackMap, BoxedCallback, Client, DateTime, ErrorAction, EventMessage, EventType,
-    FutType, FutureExt, HashMap, MaybeTlsStream, Message, NotificationEvent, Result, RwLock,
-    StreamExt, TcpStream, UserConfig, Utc, WebSocketStream,
+    Arc, ArcCallbackMap, BoxedCallback, DateTime, ErrorAction, EventMessage, EventType, FutType,
+    FutureExt, HashMap, MaybeTlsStream, Message, NotificationEvent, Result, RwLock, StreamExt,
+    TcpStream, UserConfig, Utc, WebSocketStream,
 };
 
 pub struct TwitchController {
-    ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
-    session_id: Arc<RwLock<Option<String>>>,
-    http_client: Arc<Client>,
-    user_config: UserConfig,
-    ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
-    http_endpoint: String,
+    ws: Option<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     ws_endpoint: String,
+    ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
+    subscriber: Arc<Subscriber>,
 }
 
 impl TwitchController {
-    pub fn new(
-        ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
-        client: Client,
-        user_config: UserConfig,
-        ws_endpoint: String,
-    ) -> Self {
+    #[must_use]
+    pub fn new(user_config: UserConfig) -> Self {
         Self {
-            ws,
-            session_id: Arc::new(RwLock::new(None)),
-            http_client: Arc::new(client),
-            user_config,
+            ws: None,
+            ws_endpoint: String::from("wss://eventsub.wss.twitch.tv/ws"),
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
-            http_endpoint: String::from("https://api.twitch.tv/helix/eventsub/subscriptions"),
-            ws_endpoint,
+            subscriber: Arc::new(Subscriber::new(user_config)),
         }
     }
 
-    pub fn set_dev_mode(&mut self, http_endpoint: &str, ws_endpoint: String) {
-        self.http_endpoint = http_endpoint.to_string();
+    pub async fn set_dev_mode(&mut self, http_endpoint: &str, ws_endpoint: String) {
+        self.subscriber.update_endpoint(http_endpoint).await;
         self.ws_endpoint = ws_endpoint;
     }
 
@@ -59,26 +49,26 @@ impl TwitchController {
     /// - Returns `serde_json::Error`, `anyhow::Error`, or `reqwest::Error` if
     ///   the `handle_event()` function fails
     pub async fn start(&mut self) -> Result<()> {
+        if self.ws.is_none() {
+            let (ws_stream, _) = connect_async(&self.ws_endpoint).await?;
+            self.ws = Some(ws_stream);
+        }
+
+        let mut ws: WebSocketStream<MaybeTlsStream<TcpStream>> = self
+            .ws
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to take ownership of WebSocket"))?;
+
         let mut is_reconnect: bool = false;
-        while let Some(msg) = self.ws.next().await {
+        while let Some(msg) = ws.next().await {
             match msg {
                 Ok(Message::Text(raw)) => {
-                    let sid_clone: Arc<RwLock<Option<String>>> = Arc::clone(&self.session_id);
-                    let http_client: Arc<Client> = Arc::clone(&self.http_client);
-
-                    let msg: EventMessage = handle_event(
-                        raw.as_str(),
-                        sid_clone,
-                        http_client,
-                        &self.user_config,
-                        is_reconnect,
-                        &self.http_endpoint,
-                    )
-                    .await?;
+                    let msg: EventMessage =
+                        handle_event(&raw, is_reconnect, Arc::clone(&self.subscriber)).await?;
 
                     if let EventMessage::Reconnect(r) = &msg {
                         self.ws_endpoint.clone_from(&r.payload.session.reconnect_url);
-                        self.reconnect(r.payload.session.reconnect_url.clone()).await?;
+                        self.reconnect().await?;
                         is_reconnect = true;
                     } else {
                         if let EventMessage::Welcome(_) = &msg {
@@ -94,7 +84,7 @@ impl TwitchController {
                 Ok(_) => (),
                 Err(e) => match handle_ws_error(e) {
                     ErrorAction::Skip => (),
-                    ErrorAction::Reconnect => self.reconnect(self.ws_endpoint.clone()).await?,
+                    ErrorAction::Reconnect => self.reconnect().await?,
                     ErrorAction::Fatal(reason) => return Err(reason),
                 },
             }
@@ -110,17 +100,18 @@ impl TwitchController {
     ///
     /// - Returns `tokio_tungstenite::error::Error` if failed to reconnect to
     ///   the new URL given by the Twitch API
-    pub async fn reconnect(&mut self, reconnect_url: String) -> Result<()> {
+    pub async fn reconnect(&mut self) -> Result<()> {
         const MAX_RETRIES: u32 = 5;
-        let mut attempt = 0;
+        let mut attempt: u32 = 0;
+        let reconnect_url: &String = &self.ws_endpoint;
 
         loop {
             attempt += 1;
             tracing::info!("Reconnect attempt {attempt}/{MAX_RETRIES} to {reconnect_url}");
 
-            match connect_async(&reconnect_url).await {
+            match connect_async(reconnect_url).await {
                 Ok((ws_stream, _)) => {
-                    self.ws = ws_stream;
+                    self.ws = Some(ws_stream);
                     tracing::info!("Reconnected successfully on attempt {attempt}");
                     return Ok(());
                 }
