@@ -7,27 +7,11 @@ use super::{
     StreamExt, TcpStream, UserConfig, Utc, WebSocketStream, Policy
 };
 
-struct Endpoints {
-    http: String,
-    ws: String
-}
-
-impl Endpoints {
-    #[must_use]
-    pub fn new(http_endpoint: impl Into<String>, ws_endpoint: impl Into<String>) -> Self {
-        Self {
-            http: http_endpoint.into(),
-            ws: ws_endpoint.into()
-        }
-    }
-}
-
 pub struct TwitchController {
     ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    ws_endpoint: String,
     session_id: Arc<RwLock<Option<String>>>,
-    user_config: UserConfig,
     ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
-    endpoints: Endpoints,
     subscriber: Subscriber
 }
 
@@ -36,25 +20,19 @@ impl TwitchController {
         ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
         user_config: UserConfig,
         ws_endpoint: String,
-    ) -> Result<Self> {
-        let endpoints: Endpoints = Endpoints::new(
-            "https://api.twitch.tv/helix/eventsub/subscriptions", 
-            ws_endpoint
-        );
-
-        Ok(Self {
+    ) -> Self {
+        Self {
             ws,
+            ws_endpoint,
             session_id: Arc::new(RwLock::new(None)),
-            user_config,
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
-            endpoints,
-            subscriber: Subscriber::new()
-        })
+            subscriber: Subscriber::new(user_config)
+        }
     }
 
     pub fn set_dev_mode(&mut self, http_endpoint: &str, ws_endpoint: String) {
-        self.endpoints.http = http_endpoint.to_string();
-        self.endpoints.ws = ws_endpoint;
+        self.subscriber.update_endpoint(http_endpoint);
+        self.ws_endpoint = ws_endpoint;
     }
 
     pub async fn register_callback<F, Fut>(&self, event_type: EventType, callback: F)
