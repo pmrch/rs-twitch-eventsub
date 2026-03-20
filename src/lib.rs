@@ -4,9 +4,7 @@ pub mod prelude;
 pub mod session;
 pub mod utils;
 
-use prelude::{
-    Client, ClientBuilder, Policy, Result, TwitchController, Url, UserConfig, connect_async,
-};
+use prelude::{Result, TwitchController, Url, UserConfig, connect_async};
 use rustls::crypto;
 
 /// This function starts the main loop for `TwitchController`
@@ -32,11 +30,10 @@ pub async fn create_twitch_controller(url: Option<&str>) -> Result<TwitchControl
     };
 
     let (ws_stream, _) = connect_async(url.to_string()).await?;
-    let https_client: Client = ClientBuilder::new().redirect(Policy::none()).build()?;
     let config: UserConfig = UserConfig::from_env()?;
 
     let controller: TwitchController =
-        TwitchController::new(ws_stream, https_client, config, url.to_string());
+        TwitchController::new(ws_stream, config, url.to_string())?;
 
     tracing::info!("Created controller, you can add handlers with `.register_callback()`");
     Ok(controller)

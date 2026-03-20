@@ -1,5 +1,18 @@
 use super::{Arc, RClient, Result, UserConfig, json};
 
+pub struct Subscriber {
+    client: Arc<RClient>
+}
+
+impl Subscriber {
+    #[must_use]
+    pub fn new(arc_client: Arc<RClient>) -> Self {
+        Self { 
+            client: arc_client
+        }
+    }
+}
+
 /// This function handles subscribing to the `channel.chat.message`
 /// event from Twitch API endpoint
 ///
