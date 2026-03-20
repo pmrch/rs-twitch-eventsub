@@ -73,8 +73,6 @@ impl Subscriber {
             }
         });
 
-        println!("{}", &body.to_string());
-
         let response: reqwest::Response = self
             .client
             .post(&*self.endpoint.lock().await)
@@ -86,10 +84,10 @@ impl Subscriber {
             .await?;
 
         if response.status().is_success() {
-            tracing::info!("✅ Subscribed to channel.chat.message!");
+            tracing::info!("✅ Subscribed to {}!", data.sub_type);
         } else {
             let error_text: String = response.text().await?;
-            tracing::error!("❌ Subscription failed: {error_text}, session_id: {session_id}");
+            tracing::error!("❌ Subscription failed: {error_text}");
         }
 
         Ok(())

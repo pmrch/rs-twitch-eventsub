@@ -8,21 +8,18 @@ use super::{
 };
 
 pub struct TwitchController {
-    ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    ws: Option<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     ws_endpoint: String,
     ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
     subscriber: Arc<Subscriber>,
 }
 
 impl TwitchController {
-    pub fn new(
-        ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
-        user_config: UserConfig,
-        ws_endpoint: String,
-    ) -> Self {
+    #[must_use]
+    pub fn new(user_config: UserConfig) -> Self {
         Self {
-            ws,
-            ws_endpoint,
+            ws: None,
+            ws_endpoint: String::from("wss://eventsub.wss.twitch.tv/ws"),
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
             subscriber: Arc::new(Subscriber::new(user_config)),
         }
@@ -52,8 +49,18 @@ impl TwitchController {
     /// - Returns `serde_json::Error`, `anyhow::Error`, or `reqwest::Error` if
     ///   the `handle_event()` function fails
     pub async fn start(&mut self) -> Result<()> {
+        if self.ws.is_none() {
+            let (ws_stream, _) = connect_async(&self.ws_endpoint).await?;
+            self.ws = Some(ws_stream);
+        }
+
+        let mut ws: WebSocketStream<MaybeTlsStream<TcpStream>> = self
+            .ws
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to take ownership of WebSocket"))?;
+
         let mut is_reconnect: bool = false;
-        while let Some(msg) = self.ws.next().await {
+        while let Some(msg) = ws.next().await {
             match msg {
                 Ok(Message::Text(raw)) => {
                     let msg: EventMessage =
@@ -104,7 +111,7 @@ impl TwitchController {
 
             match connect_async(reconnect_url).await {
                 Ok((ws_stream, _)) => {
-                    self.ws = ws_stream;
+                    self.ws = Some(ws_stream);
                     tracing::info!("Reconnected successfully on attempt {attempt}");
                     return Ok(());
                 }
