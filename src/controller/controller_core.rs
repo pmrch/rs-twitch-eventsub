@@ -25,10 +25,10 @@ impl Endpoints {
 pub struct TwitchController {
     ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
     session_id: Arc<RwLock<Option<String>>>,
-    http_client: Arc<Client>,
     user_config: UserConfig,
     ntfy_callbacks: ArcCallbackMap<EventType, Box<FutType>>,
-    endpoints: Endpoints
+    endpoints: Endpoints,
+    subscriber: Subscriber
 }
 
 impl TwitchController {
@@ -42,14 +42,13 @@ impl TwitchController {
             ws_endpoint
         );
 
-        let client: Client = ClientBuilder::new().redirect(Policy::none()).build()?;
         Ok(Self {
             ws,
             session_id: Arc::new(RwLock::new(None)),
-            http_client: Arc::new(client),
             user_config,
             ntfy_callbacks: Arc::new(RwLock::new(HashMap::new())),
-            endpoints
+            endpoints,
+            subscriber: Subscriber::new()
         })
     }
 

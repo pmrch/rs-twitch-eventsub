@@ -1,4 +1,4 @@
-use super::{Arc, RClient, Result, UserConfig, json};
+use super::{Arc, ClientBuilder, Policy, RClient, Result, UserConfig, json};
 
 pub struct Subscriber {
     client: Arc<RClient>
@@ -6,9 +6,14 @@ pub struct Subscriber {
 
 impl Subscriber {
     #[must_use]
-    pub fn new(arc_client: Arc<RClient>) -> Self {
+    pub fn new() -> Self {
+        let client: RClient =  ClientBuilder::new()
+            .redirect(Policy::none())
+            .build()
+            .expect("Failed to build reqwest client");
+
         Self { 
-            client: arc_client
+            client: Arc::new(client)
         }
     }
 }
