@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for NotificationPayload {
 
                 NotificationEvent::ChannelCheer(Box::new(ccb))
             }
-            other => NotificationEvent::Other(serde_json::Value::String(other.to_string())),
+            _other => NotificationEvent::Other(raw.event),
         };
 
         Ok(Self { subscription: raw.subscription, event })
