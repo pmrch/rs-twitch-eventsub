@@ -94,7 +94,7 @@ impl Subscriber {
     }
 
     fn build_condition(&self, event_type: &EventType) -> Result<serde_json::Value> {
-        let mut map = HashMap::new();
+        let mut map: HashMap<&str, &String> = HashMap::new();
 
         match event_type {
             EventType::ChatMessage => {
