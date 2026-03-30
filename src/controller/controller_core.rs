@@ -60,6 +60,7 @@ impl TwitchController {
             .ok_or_else(|| anyhow::anyhow!("Failed to take ownership of WebSocket"))?;
 
         let mut is_reconnect: bool = false;
+        tracing::info!("Started the receive loop");
         while let Some(msg) = ws.next().await {
             match msg {
                 Ok(Message::Text(raw)) => {
